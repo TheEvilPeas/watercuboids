@@ -21,6 +21,10 @@
 #include <queue>
 #include <QGraphicsProxyWidget>
 #include <iostream>
+#include <fstream>
+#include <QFileDialog>
+#include <QFile>
+#include <QDataStream>
 
 using namespace std;
 
@@ -49,6 +53,8 @@ private slots:
      */
     void handleSolveButtonClicked();
     void handleCalculationComplete(ll result, const vector<vector<int>>& workingMatrix);
+    void handleSaveButtonClicked();
+    void handleLoadButtonClicked();
 
 protected:
     /**
@@ -95,6 +101,8 @@ private:
     QPushButton *inputButton; /**< Кнопка для ручного ввода матрицы. */
     QPushButton *randomButton; /**< Кнопка для рандомного ввода матрицы. */
     QPushButton *solveButton; /**< Кнопка для решения задачи. */
+    QPushButton *saveButton;
+    QPushButton *loadButton;
     QLabel *resultLabel; /**< Метка для отображения текста "Результат". */
     QLineEdit *resultLineEdit; /**< Поле для отображения результата. */
     QWidget *matrixWidget; /**< Виджет для отображения матрицы. */
