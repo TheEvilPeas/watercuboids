@@ -21,6 +21,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
     connect(inputButton, &QPushButton::clicked, this, &MainWindow::handleInputButtonClicked);
     connect(randomButton, &QPushButton::clicked, this, &MainWindow::handleRandomButtonClicked);
     connect(solveButton, &QPushButton::clicked, this, &MainWindow::handleSolveButtonClicked);
+    connect(saveButton, &QPushButton::clicked, this, &MainWindow::handleSaveButtonClicked);
+    connect(loadButton, &QPushButton::clicked, this, &MainWindow::handleLoadButtonClicked);
 }
 
 /**
@@ -51,11 +53,13 @@ void MainWindow::createButtonWidgets() {
     inputButton = new QPushButton("Ввод");
     randomButton = new QPushButton("Рандом");
     solveButton = new QPushButton("Решить");
+    loadButton = new QPushButton("Загрузить");
     solveButton->setEnabled(false);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     buttonLayout->addWidget(inputButton);
     buttonLayout->addWidget(randomButton);
+    buttonLayout->addWidget(loadButton);
     mainLayout->addLayout(buttonLayout);
     mainLayout->addWidget(solveButton);
 }
@@ -89,7 +93,12 @@ void MainWindow::createResultWidgets() {
     resultLayout->addWidget(resultLabel);
     resultLayout->addWidget(resultLineEdit);
     resultLayout->addStretch();
+    saveButton = new QPushButton("Сохранить");
+    resultLayout->addWidget(saveButton);
+
     mainLayout->addLayout(resultLayout);
+
+
 }
 
 /**
@@ -110,7 +119,7 @@ void MainWindow::createMatrixItems(int rows, int cols, bool randomFill) {
             graphicsScene->addItem(matrixItem);
 
             QGraphicsTextItem *textItem = new QGraphicsTextItem;
-            QString text = randomFill ? QString::number(QRandomGenerator::global()->bounded(-10, 11)) : "";
+            QString text = randomFill ? QString::number(QRandomGenerator::global()->bounded(0, 11)) : "";
             textItem->setPlainText(text);
             textItem->setPos(j * 50 + 15, i * 50 + 15);
             textItem->setTextWidth(25);
@@ -213,6 +222,74 @@ void MainWindow::handleSolveButtonClicked() {
 
     // Запускаем поток
     solverThread->start();
+}
+
+void MainWindow::handleSaveButtonClicked() {
+    QString fileName = QFileDialog::getSaveFileName(this, "Сохранить файл", "", "BIN файлы (*.bin)");
+
+    if (!fileName.isEmpty()) {
+        QFile file(fileName);
+
+        if (file.open(QIODevice::WriteOnly)) {
+            QDataStream out(&file);
+            out << rowsInput->text().toInt();
+            out << colsInput->text().toInt();
+
+            for (int i = 0; i < rowsInput->text().toInt(); ++i) {
+                for (int j = 0; j < colsInput->text().toInt(); ++j) {
+                    QGraphicsTextItem *textItem = qgraphicsitem_cast<QGraphicsTextItem*>(graphicsScene->itemAt(j * 50 + 15, i * 50 + 15, QTransform()));
+                    QString text = textItem->toPlainText();
+                    out << text.toInt();
+                }
+            }
+
+            file.close();
+        }
+    }
+}
+
+void MainWindow::handleLoadButtonClicked() {
+    QString fileName = QFileDialog::getOpenFileName(this, "Загрузить файл", "", "BIN файлы (*.bin)");
+
+    if (!fileName.isEmpty()) {
+        QFile file(fileName);
+
+        if (file.open(QIODevice::ReadOnly)) {
+            QDataStream in(&file);
+            int rows, cols;
+            in >> rows;
+            in >> cols;
+
+            rowsInput->setText(QString::number(rows));
+            colsInput->setText(QString::number(cols));
+
+            graphicsScene->clear();
+
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < cols; ++j) {
+                    int value;
+                    in >> value;
+
+                    QGraphicsRectItem *matrixItem = new QGraphicsRectItem;
+                    QBrush greenBrush(Qt::green);
+                    matrixItem->setRect(j * 50, i * 50, 50, 50);
+                    matrixItem->setBrush(greenBrush);
+                    matrixItem->setAcceptHoverEvents(true);
+                    matrixItem->setData(0, "");
+                    graphicsScene->addItem(matrixItem);
+
+                    QGraphicsTextItem *textItem = new QGraphicsTextItem;
+                    textItem->setPlainText(QString::number(value));
+                    textItem->setPos(j * 50 + 15, i * 50 + 15);
+                    textItem->setTextWidth(25);
+                    textItem->setTextInteractionFlags(Qt::TextEditorInteraction);
+                    graphicsScene->addItem(textItem);
+                }
+            }
+
+            file.close();
+        }
+    }
 }
 
 /**
